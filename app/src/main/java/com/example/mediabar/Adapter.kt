@@ -13,7 +13,8 @@ import com.google.android.material.slider.RangeSlider
 import java.util.EnumSet.range
 
 
-class Adapter(var data: ArrayList<Content>, var context: Context) : RecyclerView.Adapter<Adapter.ViewHolder>(){
+class Adapter(var data: ArrayList<Content>, var context: Context) :
+    RecyclerView.Adapter<Adapter.ViewHolder>() {
     inner class ViewHolder(val binding: CardViewBinding) : RecyclerView.ViewHolder(binding.root) {
 
     }
@@ -27,10 +28,10 @@ class Adapter(var data: ArrayList<Content>, var context: Context) : RecyclerView
         return ViewHolder(cardViewLecturesBinding)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, @SuppressLint("RecyclerView") position: Int) {
-        holder.binding.seekBar.values = data[position].values
-        holder.binding.start.text=data[position].values[0].toString()
-        holder.binding.end.text=data[position].values[1].toString()
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.binding.seekBar.values = data[holder.adapterPosition].values
+        holder.binding.start.text = data[holder.adapterPosition].values[0].toString()
+        holder.binding.end.text = data[holder.adapterPosition].values[1].toString()
         holder.binding.seekBar.addOnSliderTouchListener(object : RangeSlider.OnSliderTouchListener {
             override fun onStartTrackingTouch(slider: RangeSlider) {
 
@@ -38,82 +39,88 @@ class Adapter(var data: ArrayList<Content>, var context: Context) : RecyclerView
 
 
             override fun onStopTrackingTouch(slider: RangeSlider) {
-                    if(position==0 && slider.values[1]==0F)
-                    {
+                if (!(holder.adapterPosition == 0 && slider.focusedThumbIndex == 0)) {
+                    if (holder.adapterPosition == data.size - 1) {
+                        var newdata = listOf<Float>(slider.values[1], 100.0f)
+                        data.add(holder.adapterPosition + 1, Content(newdata, "#0099cc"))
+                        notifyItemInserted(holder.adapterPosition + 1)
+                    } else if ((holder.adapterPosition == 0 || holder.adapterPosition==-1) && slider.values[1] == 0F) {
                         data.clear()
-                        data.add(Content(listOf<Float>(0.0F,100F),"#0099cc"))
+                        data.add(Content(listOf<Float>(0.0F, 100F), "#0099cc"))
                         notifyDataSetChanged()
-                    }
-                    if(position==data.size-1)
-                    {
-                        var newdata= listOf<Float>(slider.values[1],100.0f)
-                        data.add(position+1, Content(newdata,"#0099cc"))
-                        notifyItemInserted(position+1)
-                    }
-                    else if(slider.focusedThumbIndex==0)
-                    {
-                        if(slider.values[0]<data[position-1].values[0])
-                        {
-                            for(i in 0..position-1)
-                            {
-                                if(i>=data.size)
-                                {
+                    } else if (slider.focusedThumbIndex == 0) {
+                        if (slider.values[0] < data[holder.adapterPosition - 1].values[0]) {
+                            for (i in 0..holder.adapterPosition - 1) {
+                                if (i >= data.size) {
                                     break;
+                                } else if (slider.values[0] <= data[i].values[0]) {
+                                    data.removeAt(i)
+                                    notifyItemRemoved(i)
                                 }
-                                else if(slider.values[0]<data[i].values[0])
-                                {
+                            }
+                        } else {
+                            var newdata =
+                                listOf<Float>(
+                                    data[holder.adapterPosition - 1].values[0],
+                                    slider.values[0]
+                                )
+                            data[holder.adapterPosition].values =
+                                listOf<Float>(
+                                    slider.values[0],
+                                    data[holder.adapterPosition].values[1]
+                                )
+                            notifyItemChanged(holder.adapterPosition)
+                            data[holder.adapterPosition - 1].values = newdata
+                            notifyItemChanged(holder.adapterPosition - 1)
+
+                        }
+                    } else if (slider.focusedThumbIndex == 1) {
+//                        Toast.makeText(context, holder.adapterPosition.toString(), Toast.LENGTH_SHORT).show()
+                        if (slider.values[1] < data[holder.adapterPosition + 1].values[1]) {
+                            var newdata = Content(
+                                listOf<Float>(
+                                    slider.values[1],
+                                    data[holder.adapterPosition + 1].values[1]
+                                ), "#0099cc"
+                            )
+                            data[holder.adapterPosition].values =
+                                listOf<Float>(
+                                    data[holder.adapterPosition].values[0],
+                                    slider.values[1]
+                                )
+                            notifyItemChanged(holder.adapterPosition)
+                            data[holder.adapterPosition + 1] = newdata
+                            notifyItemChanged(holder.adapterPosition + 1)
+                        }
+                        else {
+                            for (i in holder.adapterPosition + 1..data.size) {
+                                if (i >= data.size) {
+                                    break;
+                                } else if (slider.values[1] >= data[i].values[1]) {
                                     data.removeAt(i)
                                     notifyItemRemoved(i)
                                 }
                             }
                         }
-                        else {
-                            var newdata =
-                                listOf<Float>(data[position - 1].values[0], slider.values[0])
-                            data[position].values= listOf<Float>(slider.values[0],data[position].values[1])
-                            data[position - 1].values = newdata
-                            notifyItemChanged(position - 1)
-                        }
                     }
-                    else if(slider.focusedThumbIndex==1)
-                    {
-                        if(position==data.size-1)
-                        {
-                            var newdata= listOf<Float>(slider.values[1],100.0f)
-                            data.add(position+1, Content(newdata,"#0099cc"))
-                            notifyItemInserted(position+1)
-                        }
-                        if(slider.values[1]<data[position+1].values[1] ) {
-                            var newdata =Content(
-                                listOf<Float>(slider.values[1], data[position + 1].values[1]),"#0099cc")
-                            data[position].values= listOf<Float>(data[position].values[0],slider.values[1])
-                            data[position + 1]=newdata
-                            notifyItemChanged(position + 1)
-                        }
-                    }
-                else
-                    {
-                        for(i in position+1..data.size)
-                        {
-                            if(i>=data.size)
-                            {
-                                break;
-                            }
-                            else if(slider.values[1]>=data[i].values[1])
-                            {
-                                data.removeAt(i)
-                                notifyItemRemoved(i)
-                            }
-                        }
-                    }
+//                                        else {
+//                        for (i in holder.adapterPosition + 1..data.size) {
+//                            if (i >= data.size) {
+//                                break;
+//                            } else if (slider.values[1] >= data[i].values[1]) {
+//                                data.removeAt(i)
+//                                notifyItemRemoved(i)
+//                            }
+//                        }
+//                    }
 
+                }
             }
-
         })
         holder.binding.seekBar.addOnChangeListener(object : RangeSlider.OnChangeListener {
             override fun onValueChange(slider: RangeSlider, value: Float, fromUser: Boolean) {
-                holder.binding.start.text=slider.values[0].toString()
-                holder.binding.end.text=slider.values[1].toString()
+                holder.binding.start.text = slider.values[0].toString()
+                holder.binding.end.text = slider.values[1].toString()
             }
         })
 
